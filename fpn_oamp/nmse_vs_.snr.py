@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 from tensorflow.keras.models import load_model
 from sklearn.metrics import mean_squared_error
 
@@ -18,8 +19,18 @@ def compute_nmse(y_true, y_pred):
     norm_factor = np.linalg.norm(y_true.flatten()) ** 2
     return 5 * np.log10(mse / norm_factor)
 
+# Define a function to save results to an Excel file
+def save_results_to_excel(snr_levels, nmse_linear, nmse_nonlinear, filename='nmse_results.xlsx'):
+    df = pd.DataFrame({
+        'SNR (dB)': snr_levels,
+        'Linear Model NMSE (dB)': nmse_linear,
+        'Nonlinear Model NMSE (dB)': nmse_nonlinear
+    })
+    df.to_excel(filename, index=False)
+    print(f"Results saved to '{filename}'")
+
 # Evaluate across different SNR levels (Signal-to-Noise Ratio in dB)
-snr_levels = [0, 5, 10, 15, 20]  # SNR values in dB
+snr_levels = [-20, -15, -10 , -5 , 0, 5, 10, 15, 20]  # SNR values in dB
 nmse_linear = []
 nmse_nonlinear = []
 
@@ -44,6 +55,9 @@ for snr in snr_levels:
     print(f"SNR: {snr} dB")
     print(f"  Linear Model NMSE: {nmse_linear_value:.2f} dB")
     print(f"  Nonlinear Model NMSE: {nmse_nonlinear_value:.2f} dB")
+
+# Save the results to an Excel file
+save_results_to_excel(snr_levels, nmse_linear, nmse_nonlinear)
 
 # Plot the results
 plt.plot(snr_levels, nmse_linear, 'o-', label='Linear Model NMSE')
