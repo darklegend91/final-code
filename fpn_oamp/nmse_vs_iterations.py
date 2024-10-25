@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 from tensorflow.keras.models import load_model
 from sklearn.metrics import mean_squared_error
 
@@ -17,6 +18,16 @@ def compute_nmse(y_true, y_pred):
     mse = mean_squared_error(y_true.flatten(), y_pred.flatten())
     norm_factor = np.linalg.norm(y_true.flatten()) ** 2
     return 5 * np.log10(mse / norm_factor)
+
+# Define a function to save NMSE results to an Excel file
+def save_results_to_excel(iterations, nmse_linear, nmse_nonlinear, filename='nmse_results.xlsx'):
+    df = pd.DataFrame({
+        'Iterations': iterations,
+        'Linear Model NMSE (dB)': nmse_linear,
+        'Nonlinear Model NMSE (dB)': nmse_nonlinear
+    })
+    df.to_excel(filename, index=False)
+    print(f"Results saved to '{filename}'")
 
 # Evaluate across different iterations with added noise
 iterations = [1, 5, 10, 15, 20]
@@ -60,3 +71,6 @@ plt.savefig('nmse_vs_iterations.png')
 plt.show()
 
 print("Chart saved as 'nmse_vs_iterations.png'")
+
+# Save the NMSE results to an Excel file
+save_results_to_excel(iterations, nmse_linear, nmse_nonlinear)
