@@ -3,15 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from tensorflow.keras.models import load_model
 from sklearn.metrics import mean_squared_error
-
-# Load the dataset
-data = np.load('thz_mimo_dataset1.npz')
-X_test = data['X_test']
-y_test = data['y_test']
-
-# Load the trained models
-linear_model = load_model('linear_model_final_model.keras')
-nonlinear_model = load_model('nonlinear_model_final_model.keras')
+import os
 
 # Define a function to compute NMSE (Normalized Mean Squared Error)
 def compute_nmse(y_true, y_pred):
@@ -41,12 +33,30 @@ nmse_nonlinear_all = []
 print("Evaluating models across different SNR values and iterations:")
 for snr in snr_values:
     print(f"\nEvaluating for SNR: {snr} dB")
-    noise_power = 10 ** (-snr / 10)
+    
+    # Load the dataset for the current SNR
+    data = np.load(f'thz_mimo_dataset_snr_{snr}.npz')
+    X_test = data['X_test']
+    y_test = data['y_test']
+    
+    # Load the trained models for the current SNR
+    linear_model_path = f'linear_model_snr_{snr}_final_model.keras'
+    nonlinear_model_path = f'nonlinear_model_snr_{snr}_final_model.keras'
+    
+    if not os.path.exists(linear_model_path) or not os.path.exists(nonlinear_model_path):
+        print(f"Model files for SNR {snr} dB not found.")
+        continue
+
+    linear_model = load_model(linear_model_path)
+    nonlinear_model = load_model(nonlinear_model_path)
+    
+    # Initialize lists to store NMSE values for each iteration for this SNR
     nmse_linear = []
     nmse_nonlinear = []
     
     for iteration in iterations:
         # Add noise according to the iteration count and SNR
+        noise_power = 10 ** (-snr / 10)
         noise = np.random.normal(0, np.sqrt(noise_power), X_test.shape) * iteration
         X_test_noisy = X_test + noise  # Adding noise to the test data
         
@@ -66,12 +76,12 @@ for snr in snr_values:
         print(f"    Nonlinear Model NMSE: {nmse_nonlinear_value:.2f} dB")
     
     # Append the results for this SNR
-    nmse_linear_all.extend(nmse_linear)
-    nmse_nonlinear_all.extend(nmse_nonlinear)
+    nmse_linear_all.extend([-val for val in nmse_linear])  # Negate NMSE values for plotting
+    nmse_nonlinear_all.extend([-val for val in nmse_nonlinear])  # Negate NMSE values for plotting
     
     # Plot NMSE for this SNR
-    plt.plot(iterations, nmse_linear, 'o-', label=f'Linear Model NMSE (SNR={snr} dB)')
-    plt.plot(iterations, nmse_nonlinear, 's-', label=f'Nonlinear Model NMSE (SNR={snr} dB)')
+    plt.plot(iterations, nmse_linear_all[-len(nmse_linear):], 'o-', label=f'Linear Model NMSE (SNR={snr} dB)')
+    plt.plot(iterations, nmse_nonlinear_all[-len(nmse_nonlinear):], 's-', label=f'Nonlinear Model NMSE (SNR={snr} dB)')
 
 # Configure the plot
 plt.xlabel('Iterations (Noise Intensity)')
@@ -81,12 +91,9 @@ plt.grid(True)
 plt.title('NMSE vs Iterations for Different SNR Levels')
 
 # Save the plot
-plt.savefig('nmse_vs_iterations_for_snr.png', bbox_inches='tight')
-
-# Show the plot
+plt.savefig('nmse_vs_iterations_for_snr_negated.png', bbox_inches='tight')
 plt.show()
-
-print("Chart saved as 'nmse_vs_iterations_for_snr.png'")
+print("Chart saved as 'nmse_vs_iterations_for_snr_negated.png'")
 
 # Save the NMSE results to an Excel file
 save_results_to_excel(snr_values, iterations, nmse_linear_all, nmse_nonlinear_all)

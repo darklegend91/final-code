@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
 import pandas as pd
+import os
 
 # Define a function to compute residual norm (difference between prediction and true)
 def compute_residual_norm(y_true, y_pred):
@@ -10,28 +11,39 @@ def compute_residual_norm(y_true, y_pred):
     return norm
 
 # Initialize SNR levels used during dataset generation
-snr_levels = [-20, -15, -10, -5, 0, 5, 10, 15, 20]
+snr_levels = [-10, -5, 0, 5, 10, 15, 20]  # Use the same SNR levels as in train.py
 residual_norm_linear = []
 residual_norm_nonlinear = []
-
-# Load the trained models
-linear_model = load_model('linear_model_final_model.keras')
-nonlinear_model = load_model('nonlinear_model_final_model.keras')
 
 print("Evaluating residual norms across different SNR levels:")
 for snr in snr_levels:
     # Load the dataset for the current SNR level
-    data = np.load(f'thz_mimo_dataset_snr_{snr}.npz')  # Ensure you have the correct naming convention
-    X_test = data['X_test']
-    y_test = data['y_test']
+    data_path = f'thz_mimo_dataset_snr_{snr}.npz'
+    if os.path.exists(data_path):
+        data = np.load(data_path)
+        X_test = data['X_test']
+        y_test = data['y_test']
+    else:
+        print(f"Dataset for SNR = {snr} not found. Skipping...")
+        continue
     
-    # Make predictions using the models
-    y_pred_linear = linear_model.predict(X_test)
-    y_pred_nonlinear = nonlinear_model.predict(X_test)
+    # Load the trained models
+    linear_model_path = f'linear_model_snr_{snr}_final_model.keras'
+    nonlinear_model_path = f'nonlinear_model_snr_{snr}_final_model.keras'
     
-    # Compute residual norm for both models
-    residual_norm_linear.append(compute_residual_norm(y_test, y_pred_linear))
-    residual_norm_nonlinear.append(compute_residual_norm(y_test, y_pred_nonlinear))
+    if os.path.exists(linear_model_path) and os.path.exists(nonlinear_model_path):
+        linear_model = load_model(linear_model_path)
+        nonlinear_model = load_model(nonlinear_model_path)
+        
+        # Make predictions using the models
+        y_pred_linear = linear_model.predict(X_test)
+        y_pred_nonlinear = nonlinear_model.predict(X_test)
+        
+        # Compute residual norm for both models
+        residual_norm_linear.append(compute_residual_norm(y_test, y_pred_linear))
+        residual_norm_nonlinear.append(compute_residual_norm(y_test, y_pred_nonlinear))
+    else:
+        print(f"Model files for SNR = {snr} not found. Skipping...")
 
 # Function to save results to an Excel file
 def save_results_to_excel(snr_levels, residual_norm_linear, residual_norm_nonlinear, filename='residual_norm_results.xlsx', sheet_name='Residual Norm Results'):
@@ -62,4 +74,3 @@ plt.savefig('residual_norm_vs_snr.png')
 plt.show()
 
 print("Chart saved as 'residual_norm_vs_snr.png'")
-        

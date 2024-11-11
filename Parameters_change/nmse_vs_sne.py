@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from tensorflow.keras.models import load_model
 from sklearn.metrics import mean_squared_error
+import os
 
 # Define a function to compute NMSE (Normalized Mean Squared Error)
 def compute_nmse(y_true, y_pred):
@@ -27,16 +28,29 @@ snr_levels = [-10, -5, 0, 5, 10, 15, 20]
 nmse_linear = []
 nmse_nonlinear = []
 
-# Load the trained linear and non-linear models
-linear_model = load_model('linear_model_final_model.keras')
-nonlinear_model = load_model('nonlinear_model_final_model.keras')
-
 print("Evaluating models across different SNR levels:")
 for snr in snr_levels:
     # Load the dataset for the current SNR level
-    data = np.load(f'thz_mimo_dataset_snr_{snr}.npz')
+    data_file = f'thz_mimo_dataset_snr_{snr}.npz'
+    if not os.path.exists(data_file):
+        print(f"Data file not found: {data_file}")
+        continue
+    
+    data = np.load(data_file)
     X_test = data['X_test']
     y_test = data['y_test']
+    
+    # Paths to the models for the current SNR level
+    linear_model_path = f'linear_model_snr_{snr}_final_model.keras'
+    nonlinear_model_path = f'nonlinear_model_snr_{snr}_final_model.keras'
+
+    # Load models if available, else skip to next SNR level
+    if os.path.exists(linear_model_path) and os.path.exists(nonlinear_model_path):
+        linear_model = load_model(linear_model_path)
+        nonlinear_model = load_model(nonlinear_model_path)
+    else:
+        print(f"Model files not found for SNR {snr} dB")
+        continue
     
     # Make predictions using the models
     y_pred_linear = linear_model.predict(X_test)
