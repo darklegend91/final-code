@@ -1,3 +1,5 @@
+##Readme
+#How to run the code
 Steps to Run the code
 1) First step is data generation so we have to run data_gen.py for data genartion for desired parameters.
 2) We have to tran the model so we have to reun train.py to train the model and generate weights for the same.
